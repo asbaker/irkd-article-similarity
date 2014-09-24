@@ -101,6 +101,49 @@
   (map (partial match-fn d) documents))
 
 
+
+(defn calc-term-weights [popular-words doc]
+  (defn in-list? [list freq-word-pair] (contains? (set list) (first freq-word-pair) ))
+
+  (def word-frequency (frequencies doc))
+  (filter (partial in-list? popular-words) word-frequency))
+
+
+
+(defn calc-cosine-similarity [doc1-term-weights doc2-term-weights]
+  ;; http://en.wikipedia.org/wiki/Vector_space_model
+  ;; cos defined as: d.q / ||d|| ||q||
+
+
+  ;; (["obama" 1] ["percent" 1] ["time" 1] ["senate" 1] ["democratic" 6] ["foo" 3])
+  ;; (["obama" 2] ["percent" 3] ["time" 1] ["senate" 7] ["democratic" 2])
+
+  ;; get a unique hash of all terms
+  (def terms (set (flatten (conj (map first doc1-term-weights) (map first doc2-term-weights)))))
+
+
+  ;; fn to get the frequency out of the word-frequency pair list for a specific word
+  (defn get-word-frequency [l word]
+    (defn check-word [pair] (= word (first pair)))
+    (def value (second (first (filter check-word l))))
+    (if (nil? value) 0 value))
+
+  ;; fn to multiply the frequency in doc1 with freq in doc2 for a specific word
+  (defn multiply-word-weights [word] (* (get-word-frequency doc1-term-weights word) (get-word-frequency doc2-term-weights word)))
+  ;; calc the by map and sum across all words
+  (def pair-products (map multiply-word-weights terms))
+  (def d-dot-q (reduce + pair-products))
+
+  (defn square-weight [pair] (Math/pow (second pair) 2))
+  (def d-norm (math/sqrt (reduce + (map square-weight doc1-term-weights))))
+  (def q-norm (math/sqrt (reduce + (map square-weight doc2-term-weights))))
+
+  (double (/ d-dot-q  (* d-norm q-norm)))
+
+  )
+
+
+
 (defn -main []
   (def files '("resources/article1.txt"
                "resources/article2.txt"
@@ -152,4 +195,45 @@
   (pprint (map (partial calc-for-article-all-documents overlap-coefficient term-document-matrix) term-document-matrix))
   (println "********************************")
 
-  )
+  (println "********************************")
+  (println "Similar document term weights")
+  (def doc0 (nth articles 0))
+  (def doc2 (nth articles 2))
+  (def doc0-term-weights (calc-term-weights popular-words doc0))
+  (def doc2-term-weights (calc-term-weights popular-words doc2))
+
+  (pprint doc0-term-weights)
+  (pprint doc2-term-weights)
+  (println "********************************")
+
+  (println "********************************")
+  (println "cosine similarity measure between doc 0 and doc 2 (both political)")
+  (pprint (calc-cosine-similarity doc0-term-weights doc2-term-weights))
+  (println "********************************")
+
+  (println "********************************")
+  (println "cosine similarity measure between doc 0 and doc 1 (highly related)")
+  (def doc1 (nth articles 1))
+  (def doc1-term-weights (calc-term-weights popular-words doc1))
+  (pprint (calc-cosine-similarity doc0-term-weights doc1-term-weights))
+  (println "********************************")
+
+  (println "********************************")
+  (println "cosine similarity measure between doc 0 and doc 0 (same article)")
+  (pprint (calc-cosine-similarity doc0-term-weights doc0-term-weights))
+  (println "********************************")
+
+  (println "********************************")
+  (println "cosine similarity measure between doc 0 and doc 3 (only related by 1 term)")
+  (def doc3 (nth articles 3))
+  (def doc3-term-weights (calc-term-weights popular-words doc3))
+  (pprint (calc-cosine-similarity doc0-term-weights doc3-term-weights))
+  (println "********************************")
+
+
+  (println "********************************")
+  (println "cosine similarity measure between doc 0 and doc 4 (not related at all)")
+  (def doc4 (nth articles 4))
+  (def doc4-term-weights (calc-term-weights popular-words doc4))
+  (pprint (calc-cosine-similarity doc0-term-weights doc4-term-weights))
+  (println "********************************"))

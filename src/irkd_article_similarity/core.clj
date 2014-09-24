@@ -163,7 +163,7 @@
   (def popular-words (map first popular-word-freqs))
   (println "*********************************")
   (println "10 most popular words: ")
-  (pprint popular-words)
+  (pprint popular-word-freqs)
   (println "*********************************")
 
 
@@ -236,4 +236,13 @@
   (def doc4 (nth articles 4))
   (def doc4-term-weights (calc-term-weights popular-words doc4))
   (pprint (calc-cosine-similarity doc0-term-weights doc4-term-weights))
+  (println "********************************")
+
+
+  (println "********************************")
+  (println "cosine similarity measure between doc 0 and doc 9 (a different class)")
+  (def doc9 (nth articles 9))
+  (def doc9-term-weights (calc-term-weights popular-words doc9))
+  (pprint (calc-cosine-similarity doc0-term-weights doc9-term-weights))
   (println "********************************"))
+
